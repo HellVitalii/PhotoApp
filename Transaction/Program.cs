@@ -4,6 +4,7 @@ using Transaction.model;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Data.Entity;
+using System.Data;
 
 namespace Transaction
 {
@@ -12,16 +13,29 @@ namespace Transaction
         static void addLike(Photo photo)
         {
             using (PhotoContext db = new PhotoContext())
-            {                
-                if (photo == null)
+            {
+                using (var transaction = db.Database.BeginTransaction(IsolationLevel.ReadUncommitted))
                 {
-                    return;
-                }
-                Thread.Sleep(2000);
-                photo.Likes++;
-                db.Entry(photo).State = EntityState.Modified;
+                    try
+                    {
+
+                        if (photo == null)
+                        {
+                           return;
+                        }
+                        Thread.Sleep(5000);
+                        photo.Likes++;
+                        db.Entry(photo).State = EntityState.Modified;
                 
-                db.SaveChanges();
+                        db.SaveChanges();
+                        transaction.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Exception {0}", ex);
+                    }
+
+                }
             }
 
         }
@@ -33,10 +47,7 @@ namespace Transaction
                 db.Photos.Add(photo1);
                 db.SaveChanges();
 
-                //Task task1 = new Task(() => addLike(photo1));
-                //Task task2 = new Task(() => addLike(photo1));
-                //Task task3 = new Task(() => addLike(photo1));
-
+                
                 Task[] tasks = new Task[10];
                 int j = 1;
                 for (int i = 0; i < tasks.Length; i++)
@@ -45,12 +56,9 @@ namespace Transaction
                         Console.WriteLine($"Task {j++}");
                         addLike(photo1);
                     });
-                /*task1.Start();
-                task2.Start();*/
+               
                 Task.WaitAll();
-                //task1.Wait();
-                //task2.Wait();
-                
+               
 
                 db.SaveChanges();
             }
